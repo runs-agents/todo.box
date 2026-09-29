@@ -168,6 +168,15 @@ python box_tidy.py --auto                                                # archi
 
 Paths, the rhythm enum (5 items), and external reconciliation sources are all configurable via `TODOBOX_*` environment variables — see `box_config.py`.
 
+### Settling a todo (the sanctioned path)
+
+The writer opens accounts; settlement is an explicit, loud action — never a verbal claim. Two sanctioned paths:
+
+1. **Mark done, then archive**: add `done: true` to the todo's file body (any editor), then run `python box_tidy.py --auto` — it renames `OPEN_`→`DONE_` (atomic, same volume) and moves the file to `_done/YYYY-MM/`. The TID never changes.
+2. **Direct rename**: rename the file yourself `OPEN_..._title.txt` → `DONE_..._title.txt` — the scanner picks it up on the next scan and `box_tidy` archives it.
+
+A dedicated settle CLI (`box_settle.py <TID>`) is on the roadmap — the writer's `--type 完成` flag is for *backfilling* an already-done item, not for settling an open one (the duplicate check treats it as the same account, by title).
+
 > The self-test's git assertion expects at least one commit: if you copied the files without cloning, run `git init && git commit --allow-empty -m init` first.
 
 ---

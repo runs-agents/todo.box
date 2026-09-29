@@ -214,7 +214,10 @@ def add(content: str, zone: str | None, type_: str, cls: str | None,
     zdir = bc.INBOX if diverted else zdir
 
     # 2. 重名检测（同分区内 norm 相同 → rc=3）
-    if type_ == "待办" and not force:
+    # ★ 复审 F-A（盲审二轮实锤）：原 `type_ == "待办"` 让 --type 完成 绕过查重，
+    #   同标题 OPEN 已存在时静默造出第二个文件、不同 tid——一脚踩三条宪法
+    #   （一待办一文件 / TID 对账主键 / 重复账）。扩到完成型；合法回填走 --force。
+    if type_ in ("待办", "完成") and not force:
         try:
             dup = duplicate_check(zone, content)
         except UndecodableError as e:
@@ -280,7 +283,7 @@ def add(content: str, zone: str | None, type_: str, cls: str | None,
     tag = "（转收件箱：" + reason + "）" if diverted else ""
     print(f"✓ 已建账文件{tag}")
     print(f"  文件: {target}")
-    print(f"  五段: 状态=OPEN 日期={day} tid={tid} 节奏={rhythm} 标题={bc.clean_title(content)}")
+    print(f"  五段: 状态={'OPEN' if type_ != '完成' else 'DONE'} 日期={day} tid={tid} 节奏={rhythm} 标题={bc.clean_title(content)}")
     if hb:
         print("  ⚠ 锁心跳曾停摆（已记录）")
     # 2026-09-18 看板即时刷新（用户报告：白天动账看板不动，要等次日05:35）：
