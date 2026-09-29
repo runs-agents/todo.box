@@ -1,0 +1,15 @@
+# data plane — never publish
+box/
+todo_box_index.json
+todo_box_index.last_good.json
+todo_box_state.json
+todo_notify_state.json
+todo_notify_summary.json
+todo_box_dashboard.sig
+box_tidy_state.json
+box_tidy_run.log
+box_dashboard_run.log
+todo_tidy_weekly.md
+todo_settle_shadow.json
+__pycache__/
+*.pyc
