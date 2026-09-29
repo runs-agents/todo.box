@@ -691,11 +691,13 @@ def summarize_cron_runs(days: int = 7) -> tuple[int, int, list]:
     「各 cron 执行情况」是周报固定字段（方案 §六.10）。
     """
     import sqlite3
-    if not os.path.exists(bc.HERMES_CRON_DB):
+    if not bc.CRON_DB:
+        return 0, 0, []   # 未配置 TODOBOX_CRON_DB → 跳过统计（宁漏勿假）
+    if not os.path.exists(bc.CRON_DB):
         return 0, 0, []
     since = (datetime.datetime.now(SH) - datetime.timedelta(days=days)).strftime("%Y-%m-%d")
     try:
-        con = sqlite3.connect(f"file:{bc.HERMES_CRON_DB}?mode=ro", uri=True)
+        con = sqlite3.connect(f"file:{bc.CRON_DB}?mode=ro", uri=True)
         rows = con.execute(
             "SELECT job_id, COUNT(*), "
             "SUM(CASE WHEN status!='completed' THEN 1 ELSE 0 END) "

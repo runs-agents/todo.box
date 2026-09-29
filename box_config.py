@@ -39,14 +39,13 @@ BOX = os.environ.get("TODOBOX_BOX") or os.path.join(HOME, "box")
 # 旧箱（可选，只读封存）：迁移工具只准读它。任何写入 = 违规。
 LEGACY_BOX = os.environ.get("TODOBOX_LEGACY_BOX") or ""
 
-#: 五个数据分区（正式待办的家）——新家命名（无「区」字）
-ZONES = {
-    "01": os.path.join(BOX, "01_语音"),
-    "02": os.path.join(BOX, "02_表情包"),
-    "03": os.path.join(BOX, "03_文档"),
-    "04": os.path.join(BOX, "04_数据"),
-    "05": os.path.join(BOX, "05_杂项"),
-}
+#: 五个数据分区（正式待办的家）——缺省中性命名；可用 TODOBOX_ZONES 覆盖
+#: （逗号分隔，恰好 5 项，按序对应 01-05）。分区名是纯标签，语义由你赋予。
+ZONES = dict(
+    (k, os.path.join(BOX, v)) for k, v in zip(
+        ("01", "02", "03", "04", "05"),
+        (os.environ.get("TODOBOX_ZONES")
+         or "01_工作,02_学习,03_生活,04_参考,05_杂项").split(",")))
 #: 旧箱五区（迁移映射用；只在 migrate_v2 的读侧出现）
 LEGACY_ZONES = {
     "01": os.path.join(LEGACY_BOX, "01_语音区"),
@@ -117,7 +116,9 @@ FN_STATE_TO_STATE = {"OPEN": "todo", "DONE": "done"}
 RHYTHMS = tuple(
     (os.environ.get("TODOBOX_RHYTHMS") or "盯办,现在就做,等人,长线,永不催").split(","))
 R_WATCH, R_DO_NOW, R_AWAIT, R_LONG, R_NEVER = RHYTHMS
-RHYTHM_DEFAULT = "现在就做"
+#: 默认节奏跟枚举走（盲审 P1-1：硬编码中文会让非中文枚举下「不带 --cls」
+#: 的最常用写入路径静默降级收件箱——默认值必须是枚举成员）
+RHYTHM_DEFAULT = R_DO_NOW
 RHYTHM_INBOX = "待整理"        # 收件箱降级时的节奏字段
 #: 永不催的节奏（L3 铁律）
 RHYTHM_NEVER = (R_NEVER,)
@@ -273,14 +274,11 @@ DASHBOARD_SIG = os.path.join(HOME, "todo_box_dashboard.sig")
 # ══════════════════════════════════════════════════════
 # 格式巡检白名单（方案 🟡-3：**显式枚举**，不用 glob、不用「含标记」动态口子）
 # ══════════════════════════════════════════════════════
-#: 整理器允许自动修格式的文件（相对 BOX 的路径）
-TIDY_WHITELIST = (
-    "01_语音区/20260906_待办账.txt",
-    "02_表情包区/20260906_待办账.txt",
-    "03_文档区/20260906_待办账.txt",
-    "04_数据区/20260906_待办账.txt",
-    "_总账本.md",
-)
+#: 整理器允许自动修格式的文件（相对 BOX 的路径）。
+#: 开源版缺省空：原白名单指向行协议时代的旧账本（v4 文件名协议后这些
+#: 文件已不存在，format_patrol 空转——盲审 P2-4）。要启用自动修格式，
+#: 在这里显式列出你自己的账本文件。
+TIDY_WHITELIST = ()
 #: 注：新增文件入白名单需所有者确认（方案 🟡-3）
 
 # ══════════════════════════════════════════════════════
@@ -351,8 +349,10 @@ WEEKLY_REPORT_MD = os.path.join(HOME, "todo_tidy_weekly.md")
 #: 变更日志归档目录（箱外；超行数时归档）
 CHANGELOG_ARCHIVE_DIR = os.path.join(HOME, "todo_changelog_archive")
 #: 心跳消费数据源：Hermes cron 执行库（周报「各 cron 执行情况」用）
-HERMES_CRON_DB = os.path.expanduser(r"~/AppData/Local/hermes/cron/executions.db")
-HERMES_CRON_JOBS = os.path.expanduser(r"~/AppData/Local/hermes/cron/jobs.json")
+# TODOBOX_CRON_DB（缺省空=跳过该统计——宁漏勿假，与 SKILLS_DIR/STATE_DB 同款守卫；
+# 原硬编码 ~/AppData/Local/hermes 路径是家用残留，开源缺省不再指向它）
+CRON_DB = os.environ.get("TODOBOX_CRON_DB") or ""
+HERMES_CRON_JOBS = os.environ.get("TODOBOX_CRON_JOBS") or ""
 
 if __name__ == "__main__":
     # 自检：路径存在性
