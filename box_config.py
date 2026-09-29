@@ -46,14 +46,8 @@ ZONES = dict(
         ("01", "02", "03", "04", "05"),
         (os.environ.get("TODOBOX_ZONES")
          or "01_工作,02_学习,03_生活,04_参考,05_杂项").split(",")))
-#: 旧箱五区（迁移映射用；只在 migrate_v2 的读侧出现）
-LEGACY_ZONES = {
-    "01": os.path.join(LEGACY_BOX, "01_语音区"),
-    "02": os.path.join(LEGACY_BOX, "02_表情包区"),
-    "03": os.path.join(LEGACY_BOX, "03_文档区"),
-    "04": os.path.join(LEGACY_BOX, "04_数据区"),
-    "05": os.path.join(LEGACY_BOX, "05_杂项区"),
-}
+#: （LEGACY_ZONES 已删：migrate_v2 未随包发布，零消费者——盲审终验微补丁料。
+#: 旧区名→分区号映射 LEGACY_ZONE_TO_NEW 保留，_zone_from_body 在用。）
 #: 旧区名 → 新分区号（一对一，零翻译）
 LEGACY_ZONE_TO_NEW = {
     "01_语音区": "01", "02_表情包区": "02", "03_文档区": "03",

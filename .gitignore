@@ -13,3 +13,5 @@ todo_tidy_weekly.md
 todo_settle_shadow.json
 __pycache__/
 *.pyc
+# pre-fix baseline files (internal audit trail) — never publish
+*.orig

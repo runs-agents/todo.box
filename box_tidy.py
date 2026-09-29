@@ -1042,7 +1042,7 @@ def selftest() -> int:
     _sh2.rmtree(_td2, ignore_errors=True)
 
     # 7. 转码备份路径唯一性（B3 预检：5 个同名 _说明.txt 不互覆）
-    _b1 = transcode_backup_path(os.path.join(bc.BOX, "01_语音", "_说明.txt"), "t")
+    _b1 = transcode_backup_path(os.path.join(bc.BOX, "01_工作", "_说明.txt"), "t")
     _b2 = transcode_backup_path(os.path.join(bc.BOX, "05_杂项", "_说明.txt"), "t")
     ok10 = (_b1 != _b2)
     print(f"  [{'OK' if ok10 else 'FAIL'}] 转码备份路径镜像唯一（同名文件不互覆）")
