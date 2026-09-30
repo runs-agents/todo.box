@@ -130,6 +130,7 @@ def settle(tid: str, note: str | None, dry: bool) -> int:
                 print(f"✗ 拿锁后目标已消失（可能刚被归档）：{fn}——请重扫后再试。")
                 return 4
             # 2. 追加备注（可选）——write_safe 原子写 + 回读
+            note_written = False
             if note:
                 txt, _enc, lossy = write_safe.read_text_strict(src)
                 if lossy:
@@ -144,9 +145,16 @@ def settle(tid: str, note: str | None, dry: bool) -> int:
                     if not write_safe.safe_write(src, txt, backup=False):
                         print("✗ 备注写入失败（write_safe 报告）——销账中止。")
                         return 5
+                    note_written = True
             # 3. rename OPEN_→DONE_（同卷原子）
+            # ★ 终审 P2 修复（可露希尔 2026-9-30）：note 已追加场景下，本分支
+            #   原文「未动文件」说谎（备注写入了=文件被动过）。回执必须真。
             if os.path.exists(done_p):
-                print(f"✗ 销账受阻：DONE_ 同名已存在 {done_fn}——未动文件。")
+                if note_written:
+                    print(f"✗ 销账受阻：DONE_ 同名已存在 {done_fn}——"
+                          f"备注已追加进文件体，rename 受阻（请人工处理）。")
+                else:
+                    print(f"✗ 销账受阻：DONE_ 同名已存在 {done_fn}——未动文件。")
                 return 5
             os.replace(src, done_p)
             # 4. 归档 _done/YYYY-MM/
@@ -156,8 +164,6 @@ def settle(tid: str, note: str | None, dry: bool) -> int:
                       f"文件已 rename 为 DONE_ 但留在原分区，请人工归档。")
                 return 5
             os.replace(done_p, dst)
-            if lk:
-                pass  # 锁随 with 释放
     except LockBusy:
         print("✗ 箱子正被其他工具占用（锁忙）——请稍后重试。")
         return 6

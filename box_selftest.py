@@ -995,6 +995,83 @@ def test_v3_scan():
                 encoding="utf-8", errors="replace", cwd=bc.HOME, timeout=180)
 
 
+def test_b8_settle():
+    """B8（2026-9-30，可露希尔终审点名）：box_settle.py 销账链路永久断言。
+
+    五件套：settle → 分区消失 → _done 出现 → tid 稳定 → 索引更新 + 重复销账 rc=4。
+    沙箱纪律：测试 tid 用独立前缀，跑完清理，绝不碰真实账。
+    """
+    print("── B8 销账器（box_settle.py）──")
+    import subprocess as _sp
+    import shutil as _sh
+    import glob as _gb
+    settle_py = os.path.join(bc.HOME, "box_settle.py")
+    add_py = os.path.join(bc.HOME, "box_add.py")
+    scan_py = os.path.join(bc.HOME, "todo_box_scan.py")
+
+    check("B8", "box_settle.py 存在", os.path.isfile(settle_py))
+    if not os.path.isfile(settle_py):
+        return
+    src = open(settle_py, encoding="utf-8").read()
+    check("B8", "rc 约定注释在案（0/2/4/5/6）", "rc 约定" in src and "4=定位失败" in src)
+    check("B8", "锁内 TOCTOU 复核在案", "拿锁后目标已消失" in src)
+    check("B8", "回执说谎修复在案（note_written 分支）", "note_written" in src)
+    check("B8", "死代码 if lk: pass 已删", "if lk:" not in src)
+
+    # 沙箱（独立 BOX，绝不碰真实账）
+    sb = os.path.join(os.environ.get("TEMP") or os.path.expanduser("~"), "_b8_settle_sb")
+    _sh.rmtree(sb, ignore_errors=True)
+    os.makedirs(os.path.join(sb, "box"))
+    env = dict(os.environ, TODOBOX_BOX=os.path.join(sb, "box"), TODOBOX_HOME=sb)
+    def run(args):
+        return _sp.run([sys.executable] + args, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", cwd=bc.HOME, env=env, timeout=180)
+    run(["-c", "import todo_box_scan; todo_box_scan.ensure_skeleton()"])
+
+    r1 = run([add_py, "B8销账断言用例", "--zone", "03"])
+    check("B8", "造账成功", r1.returncode == 0)
+    # 从输出抓 tid
+    import re as _re
+    m = _re.search(r"tid=(T[0-9a-fA-F]+)", r1.stdout or "")
+    tid = m.group(1) if m else ""
+    check("B8", "tid 抓取成功", bool(tid), tid)
+
+    r2 = run([settle_py, tid, "--note", "B8断言备注"])
+    out2 = (r2.stdout or "") + (r2.stderr or "")
+    check("B8", "settle rc=0", r2.returncode == 0)
+    check("B8", "大声回执（已销账）", "已销账" in out2)
+    check("B8", "tid 不变声明在回执", "tid 不变" in out2)
+
+    done_files = _gb.glob(os.path.join(sb, "box", "_done", "*", f"DONE_*{tid}*"))
+    check("B8", "_done 出现 DONE 文件", len(done_files) == 1)
+    if done_files:
+        body = open(done_files[0], encoding="utf-8").read()
+        check("B8", "备注落体", "note: B8断言备注" in body)
+        check("B8", "tid 稳定（文件名含原 tid）", tid in os.path.basename(done_files[0]))
+    zone_left = _gb.glob(os.path.join(sb, "box", "03_*", f"*{tid}*"))
+    check("B8", "分区已清空该账", len(zone_left) == 0)
+
+    # 索引更新：重扫后真待办不含该 tid
+    run([scan_py, "--check"])
+    idx = os.path.join(sb, "box", "_索引.md")
+    idx_ok = False
+    if os.path.exists(idx):
+        s2 = open(idx, encoding="utf-8").read()
+        idx_ok = tid not in s2.split("已完成")[0]
+    check("B8", "索引更新（tid 移出真待办）", idx_ok)
+
+    r3 = run([settle_py, tid])
+    out3 = (r3.stdout or "") + (r3.stderr or "")
+    check("B8", "重复销账 rc=4", r3.returncode == 4)
+    check("B8", "重复销账报归档位置", "已销账" in out3 and "_done" in out3)
+
+    r4 = run([settle_py, "bad-tid"])
+    check("B8", "坏 tid 格式 rc=2", r4.returncode == 2)
+
+    _sh.rmtree(sb, ignore_errors=True)
+    check("B8", "沙箱清理", not os.path.exists(sb))
+
+
 def main():
     arg = sys.argv[1] if len(sys.argv) > 1 else ""
     which = arg.replace("--batch", "").strip() if "--batch" in arg else ""
@@ -1026,6 +1103,8 @@ def main():
         test_b6()
     if not which or which == "B7":
         test_b7()
+    if not which or which == "B8":
+        test_b8_settle()
     if not which or which == "V2":
         test_v2_config()
     if not which or which == "V3":
